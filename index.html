@@ -1,150 +1,361 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>परिवार बजट प्रबंधक</title>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body { font-family: system-ui, sans-serif; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>परिवार बजट प्रबंधक - हरिओम मित्रा</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind:wght@400;600;700&display=swap');
+        body { font-family: 'Hind', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
 </head>
+<body class="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
 
-<body class="bg-slate-100 min-h-screen">
+    <div id="app" class="max-w-6xl mx-auto">
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-8 mb-6 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold mb-2">👨‍👩‍👧‍👦 परिवार बजट प्रबंधक</h1>
+                <p class="text-indigo-100">हरिओम मित्रा जी, अपने परिवार के वित्त को व्यवस्थित करें</p>
+            </div>
+            <button onclick="toggleSettings()" class="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition">
+                <i data-lucide="settings"></i>
+            </button>
+        </div>
 
-<div class="max-w-5xl mx-auto p-4">
+        <div id="settingsPanel" class="hidden bg-white rounded-xl shadow-2xl p-6 mb-6 border-2 border-indigo-200">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">⚙️ सेटिंग्स</h2>
+                <button onclick="toggleSettings()" class="text-gray-500 hover:text-gray-700"><i data-lucide="x"></i></button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                    <h3 class="font-bold mb-3">💰 आय की श्रेणियां</h3>
+                    <div id="incomeCatList" class="space-y-2 mb-3 max-h-40 overflow-y-auto"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="newInCat" placeholder="नई श्रेणी" class="flex-1 p-2 border rounded-lg text-sm">
+                        <button onclick="addCategory('income')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button>
+                    </div>
+                </div>
+                <div class="border-2 border-red-200 rounded-lg p-4 bg-red-50">
+                    <h3 class="font-bold mb-3">💸 व्यय की श्रेणियां</h3>
+                    <div id="expenseCatList" class="space-y-2 mb-3 max-h-40 overflow-y-auto"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="newExCat" placeholder="नई श्रेणी" class="flex-1 p-2 border rounded-lg text-sm">
+                        <button onclick="addCategory('expense')" class="bg-red-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button>
+                    </div>
+                </div>
+                <div class="md:col-span-2 border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                    <h3 class="font-bold mb-3 text-blue-800">📝 अतिरिक्त फील्ड्स</h3>
+                    <div id="customFieldsList" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"></div>
+                    <button onclick="addCustomFieldPrompt()" class="w-full bg-blue-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700">
+                        <i data-lucide="plus"></i> नया फील्ड जोड़ें
+                    </button>
+                </div>
+            </div>
+        </div>
 
-  <!-- Header -->
-  <div class="bg-indigo-600 text-white rounded-2xl p-6 mb-6 shadow-lg">
-    <h1 class="text-3xl font-bold">👨‍👩‍👧‍👦 परिवार बजट प्रबंधक</h1>
-    <p class="text-indigo-100">आय, व्यय और बचत का सरल प्रबंधन</p>
-  </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-b-4 border-green-500">
+                <p class="text-sm text-gray-500 font-bold uppercase">कुल आय</p>
+                <p id="totalIncome" class="text-3xl font-black text-green-600">₹0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 border-b-4 border-red-500">
+                <p class="text-sm text-gray-500 font-bold uppercase">कुल व्यय</p>
+                <p id="totalExpense" class="text-3xl font-black text-red-600">₹0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 border-b-4 border-indigo-500">
+                <p class="text-sm text-gray-500 font-bold uppercase">शेष राशि</p>
+                <p id="balance" class="text-3xl font-black text-indigo-600">₹0</p>
+            </div>
+        </div>
 
-  <!-- Summary -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white p-4 rounded-xl shadow">
-      <p class="text-sm text-gray-500">कुल आय</p>
-      <h2 id="totalIncome" class="text-2xl font-bold text-green-600">₹0</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="plus-circle" class="text-indigo-600"></i> नया लेनदेन</h2>
+                    <div class="space-y-4">
+                        <select id="type" onchange="updateCatDropdown()" class="w-full p-3 border-2 rounded-lg bg-slate-50">
+                            <option value="expense">💸 व्यय</option>
+                            <option value="income">💰 आय</option>
+                        </select>
+                        <select id="category" class="w-full p-3 border-2 rounded-lg bg-slate-50"></select>
+                        <input type="number" id="amount" placeholder="राशि (₹)" class="w-full p-3 border-2 rounded-lg">
+                        <input type="date" id="date" class="w-full p-3 border-2 rounded-lg">
+                        <input type="text" id="description" placeholder="विवरण" class="w-full p-3 border-2 rounded-lg">
+                        <div id="dynamicFieldsContainer" class="space-y-4"></div>
+                        <button onclick="addTransaction()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-bold shadow-lg">जोड़ें</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <select id="fMonth" onchange="render()" class="p-2 border rounded-lg"></select>
+                    <select id="fYear" onchange="render()" class="p-2 border rounded-lg">
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                    </select>
+                    <select id="fType" onchange="render()" class="p-2 border rounded-lg">
+                        <option value="all">सभी</option>
+                        <option value="income">आय</option>
+                        <option value="expense">व्यय</option>
+                    </select>
+                    <input type="text" id="search" oninput="render()" placeholder="खोजें..." class="p-2 border rounded-lg">
+                </div>
+
+                <div class="flex gap-4">
+                    <button onclick="exportData()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-green-700">
+                        <i data-lucide="download"></i> Export JSON
+                    </button>
+                    <label class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700 cursor-pointer">
+                        <i data-lucide="upload"></i> Import JSON
+                        <input type="file" class="hidden" accept=".json" onchange="importData(event)">
+                    </label>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 id="historyTitle" class="font-bold text-xl mb-4 text-gray-800">लेनदेन का इतिहास</h2>
+                    <div id="transactionList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-blue-900 text-white rounded-2xl p-6 text-center text-sm shadow-xl">
+            <p><strong>सुरक्षा टिप:</strong> आपका डेटा आपके ही ब्राउज़र (LocalStorage) में सुरक्षित है। नियमित रूप से JSON Export बैकअप लेते रहें।</p>
+        </div>
     </div>
-    <div class="bg-white p-4 rounded-xl shadow">
-      <p class="text-sm text-gray-500">कुल व्यय</p>
-      <h2 id="totalExpense" class="text-2xl font-bold text-red-600">₹0</h2>
-    </div>
-    <div class="bg-white p-4 rounded-xl shadow">
-      <p class="text-sm text-gray-500">शेष राशि</p>
-      <h2 id="balance" class="text-2xl font-bold text-blue-600">₹0</h2>
-    </div>
-  </div>
 
-  <!-- Form -->
-  <div class="bg-white p-6 rounded-xl shadow mb-6">
-    <h2 class="font-bold mb-4">➕ नया लेनदेन</h2>
+    <script>
+        // State
+        let transactions = JSON.parse(localStorage.getItem('familyBudget')) || [];
+        let categories = JSON.parse(localStorage.getItem('budgetCategories')) || {
+            income: ['वेतन', 'व्यापार', 'निवेश', 'किराया आय', 'उपहार', 'अन्य आय'],
+            expense: ['किराना', 'बिजली-पानी', 'किराया', 'शिक्षा', 'स्वास्थ्य', 'मनोरंजन', 'यातायात', 'ईंधन', 'अन्य खर्च']
+        };
+        let customFieldKeys = JSON.parse(localStorage.getItem('customFieldsKeys')) || [];
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <select id="type" class="p-2 border rounded">
-        <option value="income">आय</option>
-        <option value="expense">व्यय</option>
-      </select>
+        const months = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
 
-      <select id="category" class="p-2 border rounded"></select>
+        // Init
+        function init() {
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+            const monthSelect = document.getElementById('fMonth');
+            months.forEach((m, i) => {
+                const opt = new Option(m, i);
+                if(i === new Date().getMonth()) opt.selected = true;
+                monthSelect.add(opt);
+            });
+            updateCatDropdown();
+            render();
+            renderSettings();
+            lucide.createIcons();
+        }
 
-      <input id="amount" type="number" placeholder="राशि (₹)" class="p-2 border rounded">
-      <input id="desc" type="text" placeholder="विवरण" class="p-2 border rounded">
-    </div>
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('hidden');
+        }
 
-    <button onclick="addTransaction()"
-      class="mt-4 w-full bg-indigo-600 text-white py-3 rounded-lg font-bold">
-      जोड़ें
-    </button>
-  </div>
+        function updateCatDropdown() {
+            const type = document.getElementById('type').value;
+            const catSelect = document.getElementById('category');
+            catSelect.innerHTML = categories[type].map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            // Render Dynamic Fields in Form
+            const container = document.getElementById('dynamicFieldsContainer');
+            container.innerHTML = customFieldKeys.map(key => `
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">${key}</label>
+                    <input type="text" data-key="${key}" class="custom-field-input w-full p-3 border-2 rounded-lg" placeholder="${key} दर्ज करें">
+                </div>
+            `).join('');
+        }
 
-  <!-- Chart -->
-  <div class="bg-white p-6 rounded-xl shadow mb-6">
-    <h2 class="font-bold mb-3">📊 व्यय विश्लेषण</h2>
-    <canvas id="chart"></canvas>
-  </div>
+        function addTransaction() {
+            const amount = document.getElementById('amount').value;
+            const description = document.getElementById('description').value;
+            const category = document.getElementById('category').value;
+            const type = document.getElementById('type').value;
+            const date = document.getElementById('date').value;
 
-  <!-- Transactions -->
-  <div class="bg-white rounded-xl shadow">
-    <div class="p-4 border-b font-bold">लेनदेन इतिहास</div>
-    <div id="list" class="divide-y"></div>
-  </div>
+            if(!amount || !description) return alert("कृपया पूरी जानकारी भरें");
 
-</div>
+            const customData = {};
+            document.querySelectorAll('.custom-field-input').forEach(input => {
+                customData[input.dataset.key] = input.value;
+            });
 
-<script>
-  const categories = {
-    income: ['वेतन','व्यापार','उपहार','अन्य आय'],
-    expense: ['किराना','किराया','बिजली','शिक्षा','स्वास्थ्य','अन्य खर्च']
-  };
+            const newT = {
+                id: Date.now(),
+                amount: parseFloat(amount),
+                description, category, type, date, customData
+            };
 
-  let transactions = JSON.parse(localStorage.getItem('budget')) || [];
-  let chart;
+            transactions.unshift(newT);
+            saveAndRender();
+            
+            // Clear inputs
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+            document.querySelectorAll('.custom-field-input').forEach(i => i.value = '');
+        }
 
-  function updateCategory() {
-    const type = document.getElementById('type').value;
-    const cat = document.getElementById('category');
-    cat.innerHTML = categories[type].map(c => `<option>${c}</option>`).join('');
-  }
+        function deleteTransaction(id) {
+            if(confirm("क्या आप इस लेनदेन को हटाना चाहते हैं?")) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveAndRender();
+            }
+        }
 
-  document.getElementById('type').onchange = updateCategory;
-  updateCategory();
+        // Categories & Settings Logic
+        function renderSettings() {
+            const inList = document.getElementById('incomeCatList');
+            const exList = document.getElementById('expenseCatList');
+            const cfList = document.getElementById('customFieldsList');
 
-  function addTransaction() {
-    const t = {
-      id: Date.now(),
-      type: type.value,
-      category: category.value,
-      amount: +amount.value,
-      desc: desc.value
-    };
-    if (!t.amount || !t.desc) return alert('जानकारी भरें');
-    transactions.unshift(t);
-    localStorage.setItem('budget', JSON.stringify(transactions));
-    amount.value = desc.value = '';
-    render();
-  }
+            inList.innerHTML = categories.income.map(c => `
+                <div class="flex justify-between bg-white p-2 rounded text-sm shadow-sm">
+                    <span>${c}</span>
+                    <button onclick="removeCategory('income', '${c}')" class="text-red-500"><i data-lucide="trash-2" size="14"></i></button>
+                </div>
+            `).join('');
 
-  function render() {
-    let inc=0, exp=0, map={};
-    list.innerHTML = '';
-    transactions.forEach(t=>{
-      if(t.type==='income') inc+=t.amount;
-      else {
-        exp+=t.amount;
-        map[t.category]=(map[t.category]||0)+t.amount;
-      }
-      list.innerHTML+=`
-        <div class="p-3 flex justify-between">
-          <span>${t.desc} (${t.category})</span>
-          <b class="${t.type==='income'?'text-green-600':'text-red-600'}">
-            ₹${t.amount}
-          </b>
-        </div>`;
-    });
+            exList.innerHTML = categories.expense.map(c => `
+                <div class="flex justify-between bg-white p-2 rounded text-sm shadow-sm">
+                    <span>${c}</span>
+                    <button onclick="removeCategory('expense', '${c}')" class="text-red-500"><i data-lucide="trash-2" size="14"></i></button>
+                </div>
+            `).join('');
 
-    totalIncome.textContent = '₹'+inc;
-    totalExpense.textContent = '₹'+exp;
-    balance.textContent = '₹'+(inc-exp);
+            cfList.innerHTML = customFieldKeys.map(k => `
+                <div class="flex justify-between bg-white p-2 rounded text-sm shadow-sm border border-blue-100">
+                    <span class="truncate font-semibold">${k}</span>
+                    <button onclick="removeCustomField('${k}')" class="text-red-400"><i data-lucide="x" size="14"></i></button>
+                </div>
+            `).join('');
+            
+            lucide.createIcons();
+        }
 
-    if(chart) chart.destroy();
-    chart = new Chart(document.getElementById('chart'),{
-      type:'doughnut',
-      data:{labels:Object.keys(map),datasets:[{data:Object.values(map)}]}
-    });
-  }
+        function addCategory(type) {
+            const input = type === 'income' ? document.getElementById('newInCat') : document.getElementById('newExCat');
+            const val = input.value.trim();
+            if(val && !categories[type].includes(val)) {
+                categories[type].push(val);
+                input.value = '';
+                saveSettings();
+            }
+        }
 
-  render();
-</script>
+        function removeCategory(type, name) {
+            categories[type] = categories[type].filter(c => c !== name);
+            saveSettings();
+        }
 
+        function addCustomFieldPrompt() {
+            const name = prompt("नए अतिरिक्त फील्ड का नाम (जैसे: नोट्स, बैंक, आदि):");
+            if(name && !customFieldKeys.includes(name)) {
+                customFieldKeys.push(name);
+                saveSettings();
+            }
+        }
+
+        function removeCustomField(key) {
+            customFieldKeys = customFieldKeys.filter(k => k !== key);
+            saveSettings();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('budgetCategories', JSON.stringify(categories));
+            localStorage.setItem('customFieldsKeys', JSON.stringify(customFieldKeys));
+            updateCatDropdown();
+            renderSettings();
+        }
+
+        // Export/Import
+        function exportData() {
+            const blob = new Blob([JSON.stringify({transactions, categories, customFieldKeys}, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `family-budget-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const data = JSON.parse(event.target.result);
+                transactions = data.transactions || [];
+                categories = data.categories || categories;
+                customFieldKeys = data.customFieldKeys || [];
+                saveAndRender();
+                saveSettings();
+                alert("डेटा सफलतापूर्वक इम्पोर्ट हो गया!");
+            };
+            reader.readAsText(file);
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('familyBudget', JSON.stringify(transactions));
+            render();
+            lucide.createIcons();
+        }
+
+        function render() {
+            const fMonth = parseInt(document.getElementById('fMonth').value);
+            const fYear = parseInt(document.getElementById('fYear').value);
+            const fType = document.getElementById('fType').value;
+            const search = document.getElementById('search').value.toLowerCase();
+
+            const filtered = transactions.filter(t => {
+                const tDate = new Date(t.date);
+                return (tDate.getMonth() === fMonth) &&
+                       (tDate.getFullYear() === fYear) &&
+                       (fType === 'all' || t.type === fType) &&
+                       (t.description.toLowerCase().includes(search) || t.category.toLowerCase().includes(search));
+            });
+
+            // Summary
+            let inc = 0, exp = 0;
+            filtered.forEach(t => t.type === 'income' ? inc += t.amount : exp += t.amount);
+            
+            document.getElementById('totalIncome').innerText = `₹${inc.toLocaleString('hi-IN')}`;
+            document.getElementById('totalExpense').innerText = `₹${exp.toLocaleString('hi-IN')}`;
+            document.getElementById('balance').innerText = `₹${(inc - exp).toLocaleString('hi-IN')}`;
+            document.getElementById('historyTitle').innerText = `लेनदेन का इतिहास (${filtered.length})`;
+
+            // List
+            const list = document.getElementById('transactionList');
+            list.innerHTML = filtered.length ? filtered.map(t => `
+                <div class="p-4 rounded-xl border-2 transition hover:shadow-md ${t.type === 'income' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${t.type === 'income' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">${t.category}</span>
+                                <span class="text-[10px] text-gray-400 font-bold italic">${new Date(t.date).toLocaleDateString('hi-IN')}</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800">${t.description}</h3>
+                            <div class="mt-1 flex flex-wrap gap-x-4">
+                                ${Object.entries(t.customData || {}).map(([k, v]) => v ? `<span class="text-[11px] text-gray-500"><strong>${k}:</strong> ${v}</span>` : '').join('')}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black text-lg ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${t.type === 'income' ? '+' : '-'}₹${t.amount.toLocaleString('hi-IN')}</p>
+                            <button onclick="deleteTransaction(${t.id})" class="text-gray-300 hover:text-red-500 mt-2 transition"><i data-lucide="trash-2" size="18"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') : '<div class="text-center py-10 text-gray-400">कोई लेनदेन नहीं मिला</div>';
+            
+            lucide.createIcons();
+        }
+
+        init();
+    </script>
 </body>
 </html>
