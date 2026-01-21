@@ -1,361 +1,672 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>परिवार बजट प्रबंधक - हरिओम मित्रा</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind:wght@400;600;700&display=swap');
-        body { font-family: 'Hind', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    </style>
-</head>
-<body class="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Download, Upload, TrendingUp, TrendingDown, Wallet, PieChart, Calendar, Filter, Search, Settings, Edit2, X } from 'lucide-react';
 
-    <div id="app" class="max-w-6xl mx-auto">
-        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-8 mb-6 text-white flex justify-between items-center">
+export default function FamilyBudgetApp() {
+  const [transactions, setTransactions] = useState([]);
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
+  const [type, setType] = useState('expense');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterType, setFilterType] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showSettings, setShowSettings] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [customFields, setCustomFields] = useState({});
+  
+  const [categories, setCategories] = useState({
+    income: ['वेतन', 'व्यापार', 'निवेश', 'किराया आय', 'उपहार', 'अन्य आय'],
+    expense: ['किराना', 'बिजली-पानी', 'किराया', 'शिक्षा', 'स्वास्थ्य', 'मनोरंजन', 'यातायात', 'कपड़े', 'ईंधन', 'रेस्टोरेंट', 'अन्य खर्च']
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('familyBudget');
+    const savedCategories = localStorage.getItem('budgetCategories');
+    const savedCustomFields = localStorage.getItem('customFields');
+    
+    if (saved) {
+      setTransactions(JSON.parse(saved));
+    }
+    if (savedCategories) {
+      setCategories(JSON.parse(savedCategories));
+    }
+    if (savedCustomFields) {
+      setCustomFields(JSON.parse(savedCustomFields));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('familyBudget', JSON.stringify(transactions));
+  }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem('budgetCategories', JSON.stringify(categories));
+  }, [categories]);
+
+  useEffect(() => {
+    localStorage.setItem('customFields', JSON.stringify(customFields));
+  }, [customFields]);
+
+  const addCategory = (categoryType) => {
+    if (!newCategoryName.trim()) {
+      alert('कृपया श्रेणी का नाम दर्ज करें');
+      return;
+    }
+    
+    if (categories[categoryType].includes(newCategoryName.trim())) {
+      alert('यह श्रेणी पहले से मौजूद है');
+      return;
+    }
+
+    setCategories({
+      ...categories,
+      [categoryType]: [...categories[categoryType], newCategoryName.trim()]
+    });
+    setNewCategoryName('');
+    alert('श्रेणी सफलतापूर्वक जोड़ी गई!');
+  };
+
+  const deleteCategory = (categoryType, categoryName) => {
+    if (confirm(`क्या आप "${categoryName}" श्रेणी को हटाना चाहते हैं?`)) {
+      setCategories({
+        ...categories,
+        [categoryType]: categories[categoryType].filter(cat => cat !== categoryName)
+      });
+      alert('श्रेणी हटा दी गई!');
+    }
+  };
+
+  const addCustomField = () => {
+    const fieldName = prompt('नया फील्ड का नाम दर्ज करें (जैसे: नोट्स, भुगतान विधि, आदि):');
+    if (fieldName && fieldName.trim()) {
+      setCustomFields({
+        ...customFields,
+        [fieldName.trim()]: ''
+      });
+      alert('नया फील्ड जोड़ा गया!');
+    }
+  };
+
+  const deleteCustomField = (fieldName) => {
+    if (confirm(`क्या आप "${fieldName}" फील्ड को हटाना चाहते हैं?`)) {
+      const newFields = { ...customFields };
+      delete newFields[fieldName];
+      setCustomFields(newFields);
+      alert('फील्ड हटा दिया गया!');
+    }
+  };
+
+  const addTransaction = () => {
+    if (!amount || !description || !category) {
+      alert('कृपया सभी जानकारी भरें');
+      return;
+    }
+
+    const newTransaction = {
+      id: Date.now(),
+      amount: parseFloat(amount),
+      description,
+      category,
+      type,
+      date,
+      customData: { ...customFields },
+      createdAt: new Date().toISOString()
+    };
+
+    setTransactions([newTransaction, ...transactions]);
+    setAmount('');
+    setDescription('');
+    setCategory('');
+    setCustomFields(Object.keys(customFields).reduce((acc, key) => ({ ...acc, [key]: '' }), {}));
+    alert('लेनदेन सफलतापूर्वक जोड़ा गया!');
+  };
+
+  const deleteTransaction = (id) => {
+    if (confirm('क्या आप इस लेनदेन को हटाना चाहते हैं?')) {
+      setTransactions(transactions.filter(t => t.id !== id));
+    }
+  };
+
+  const filteredTransactions = transactions.filter(t => {
+    const matchesType = filterType === 'all' || t.type === filterType;
+    const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         t.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const transactionDate = new Date(t.date);
+    const matchesMonth = transactionDate.getMonth() === selectedMonth && 
+                        transactionDate.getFullYear() === selectedYear;
+    return matchesType && matchesSearch && matchesMonth;
+  });
+
+  const totalIncome = filteredTransactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpense = filteredTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const balance = totalIncome - totalExpense;
+
+  const getCategoryStats = () => {
+    const stats = {};
+    filteredTransactions.forEach(t => {
+      if (t.type === 'expense') {
+        stats[t.category] = (stats[t.category] || 0) + t.amount;
+      }
+    });
+    return Object.entries(stats)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+  };
+
+  const exportData = () => {
+    const exportObject = {
+      transactions,
+      categories,
+      customFields: Object.keys(customFields)
+    };
+    const dataStr = JSON.stringify(exportObject, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `family-budget-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    alert('डेटा सफलतापूर्वक export हो गया! अब इसे अपने Google Drive में save करें।');
+  };
+
+  const importData = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          if (imported.transactions) {
+            setTransactions(imported.transactions);
+          }
+          if (imported.categories) {
+            setCategories(imported.categories);
+          }
+          if (imported.customFields) {
+            const fieldsObj = imported.customFields.reduce((acc, field) => ({ ...acc, [field]: '' }), {});
+            setCustomFields(fieldsObj);
+          }
+          alert('डेटा सफलतापूर्वक import हो गया!');
+        } catch (error) {
+          alert('फाइल में त्रुटि है! कृपया सही JSON फाइल चुनें।');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const months = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 
+                  'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-8 mb-6 text-white">
+          <div className="flex justify-between items-center">
             <div>
-                <h1 class="text-3xl md:text-4xl font-bold mb-2">👨‍👩‍👧‍👦 परिवार बजट प्रबंधक</h1>
-                <p class="text-indigo-100">हरिओम मित्रा जी, अपने परिवार के वित्त को व्यवस्थित करें</p>
+              <h1 className="text-4xl font-bold mb-2">
+                👨‍👩‍👧‍👦 परिवार बजट प्रबंधक
+              </h1>
+              <p className="text-indigo-100">अपने परिवार के वित्त को व्यवस्थित करें</p>
             </div>
-            <button onclick="toggleSettings()" class="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition">
-                <i data-lucide="settings"></i>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 p-3 rounded-lg transition"
+            >
+              <Settings size={24} />
             </button>
+          </div>
         </div>
 
-        <div id="settingsPanel" class="hidden bg-white rounded-xl shadow-2xl p-6 mb-6 border-2 border-indigo-200">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">⚙️ सेटिंग्स</h2>
-                <button onclick="toggleSettings()" class="text-gray-500 hover:text-gray-700"><i data-lucide="x"></i></button>
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="bg-white rounded-xl shadow-2xl p-6 mb-6 border-2 border-indigo-200">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Settings className="text-indigo-600" />
+                सेटिंग्स
+              </h2>
+              <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-gray-700">
+                <X size={24} />
+              </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="border-2 border-green-200 rounded-lg p-4 bg-green-50">
-                    <h3 class="font-bold mb-3">💰 आय की श्रेणियां</h3>
-                    <div id="incomeCatList" class="space-y-2 mb-3 max-h-40 overflow-y-auto"></div>
-                    <div class="flex gap-2">
-                        <input type="text" id="newInCat" placeholder="नई श्रेणी" class="flex-1 p-2 border rounded-lg text-sm">
-                        <button onclick="addCategory('income')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Income Categories */}
+              <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                <h3 className="font-bold text-lg mb-3 text-green-800">💰 आय की श्रेणियां</h3>
+                <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                  {categories.income.map(cat => (
+                    <div key={cat} className="flex justify-between items-center bg-white p-2 rounded">
+                      <span className="text-sm font-semibold">{cat}</span>
+                      <button
+                        onClick={() => deleteCategory('income', cat)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
+                  ))}
                 </div>
-                <div class="border-2 border-red-200 rounded-lg p-4 bg-red-50">
-                    <h3 class="font-bold mb-3">💸 व्यय की श्रेणियां</h3>
-                    <div id="expenseCatList" class="space-y-2 mb-3 max-h-40 overflow-y-auto"></div>
-                    <div class="flex gap-2">
-                        <input type="text" id="newExCat" placeholder="नई श्रेणी" class="flex-1 p-2 border rounded-lg text-sm">
-                        <button onclick="addCategory('expense')" class="bg-red-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="नई श्रेणी का नाम"
+                    className="flex-1 p-2 border-2 border-green-300 rounded-lg text-sm"
+                  />
+                  <button
+                    onClick={() => addCategory('income')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Expense Categories */}
+              <div className="border-2 border-red-200 rounded-lg p-4 bg-red-50">
+                <h3 className="font-bold text-lg mb-3 text-red-800">💸 व्यय की श्रेणियां</h3>
+                <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                  {categories.expense.map(cat => (
+                    <div key={cat} className="flex justify-between items-center bg-white p-2 rounded">
+                      <span className="text-sm font-semibold">{cat}</span>
+                      <button
+                        onClick={() => deleteCategory('expense', cat)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
+                  ))}
                 </div>
-                <div class="md:col-span-2 border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
-                    <h3 class="font-bold mb-3 text-blue-800">📝 अतिरिक्त फील्ड्स</h3>
-                    <div id="customFieldsList" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"></div>
-                    <button onclick="addCustomFieldPrompt()" class="w-full bg-blue-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700">
-                        <i data-lucide="plus"></i> नया फील्ड जोड़ें
-                    </button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="नई श्रेणी का नाम"
+                    className="flex-1 p-2 border-2 border-red-300 rounded-lg text-sm"
+                  />
+                  <button
+                    onClick={() => addCategory('expense')}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                  >
+                    <Plus size={18} />
+                  </button>
                 </div>
-            </div>
-        </div>
+              </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div class="bg-white rounded-xl shadow-lg p-6 border-b-4 border-green-500">
-                <p class="text-sm text-gray-500 font-bold uppercase">कुल आय</p>
-                <p id="totalIncome" class="text-3xl font-black text-green-600">₹0</p>
-            </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 border-b-4 border-red-500">
-                <p class="text-sm text-gray-500 font-bold uppercase">कुल व्यय</p>
-                <p id="totalExpense" class="text-3xl font-black text-red-600">₹0</p>
-            </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 border-b-4 border-indigo-500">
-                <p class="text-sm text-gray-500 font-bold uppercase">शेष राशि</p>
-                <p id="balance" class="text-3xl font-black text-indigo-600">₹0</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1 space-y-6">
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h2 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="plus-circle" class="text-indigo-600"></i> नया लेनदेन</h2>
-                    <div class="space-y-4">
-                        <select id="type" onchange="updateCatDropdown()" class="w-full p-3 border-2 rounded-lg bg-slate-50">
-                            <option value="expense">💸 व्यय</option>
-                            <option value="income">💰 आय</option>
-                        </select>
-                        <select id="category" class="w-full p-3 border-2 rounded-lg bg-slate-50"></select>
-                        <input type="number" id="amount" placeholder="राशि (₹)" class="w-full p-3 border-2 rounded-lg">
-                        <input type="date" id="date" class="w-full p-3 border-2 rounded-lg">
-                        <input type="text" id="description" placeholder="विवरण" class="w-full p-3 border-2 rounded-lg">
-                        <div id="dynamicFieldsContainer" class="space-y-4"></div>
-                        <button onclick="addTransaction()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-bold shadow-lg">जोड़ें</button>
+              {/* Custom Fields */}
+              <div className="md:col-span-2 border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                <h3 className="font-bold text-lg mb-3 text-blue-800">📝 अतिरिक्त फील्ड्स</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                  {Object.keys(customFields).map(field => (
+                    <div key={field} className="flex items-center justify-between bg-white p-2 rounded">
+                      <span className="text-sm font-semibold truncate">{field}</span>
+                      <button
+                        onClick={() => deleteCustomField(field)}
+                        className="text-red-500 hover:text-red-700 ml-2"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
+                  ))}
                 </div>
+                <button
+                  onClick={addCustomField}
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                >
+                  <Plus size={18} />
+                  नया फील्ड जोड़ें
+                </button>
+              </div>
             </div>
+          </div>
+        )}
 
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white rounded-xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <select id="fMonth" onchange="render()" class="p-2 border rounded-lg"></select>
-                    <select id="fYear" onchange="render()" class="p-2 border rounded-lg">
-                        <option value="2025">2025</option>
-                        <option value="2026" selected>2026</option>
-                    </select>
-                    <select id="fType" onchange="render()" class="p-2 border rounded-lg">
-                        <option value="all">सभी</option>
-                        <option value="income">आय</option>
-                        <option value="expense">व्यय</option>
-                    </select>
-                    <input type="text" id="search" oninput="render()" placeholder="खोजें..." class="p-2 border rounded-lg">
-                </div>
-
-                <div class="flex gap-4">
-                    <button onclick="exportData()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-green-700">
-                        <i data-lucide="download"></i> Export JSON
-                    </button>
-                    <label class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700 cursor-pointer">
-                        <i data-lucide="upload"></i> Import JSON
-                        <input type="file" class="hidden" accept=".json" onchange="importData(event)">
-                    </label>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h2 id="historyTitle" class="font-bold text-xl mb-4 text-gray-800">लेनदेन का इतिहास</h2>
-                    <div id="transactionList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"></div>
-                </div>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 font-semibold mb-1">कुल आय</p>
+                <p className="text-3xl font-bold text-green-600">₹{totalIncome.toLocaleString('hi-IN')}</p>
+              </div>
+              <div className="bg-green-100 p-4 rounded-full">
+                <TrendingUp className="text-green-600" size={32} />
+              </div>
             </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 font-semibold mb-1">कुल व्यय</p>
+                <p className="text-3xl font-bold text-red-600">₹{totalExpense.toLocaleString('hi-IN')}</p>
+              </div>
+              <div className="bg-red-100 p-4 rounded-full">
+                <TrendingDown className="text-red-600" size={32} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 font-semibold mb-1">शेष राशि</p>
+                <p className={`text-3xl font-bold ${balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                  ₹{balance.toLocaleString('hi-IN')}
+                </p>
+              </div>
+              <div className={`p-4 rounded-full ${balance >= 0 ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                <Wallet className={balance >= 0 ? 'text-blue-600' : 'text-orange-600'} size={32} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="mt-8 bg-blue-900 text-white rounded-2xl p-6 text-center text-sm shadow-xl">
-            <p><strong>सुरक्षा टिप:</strong> आपका डेटा आपके ही ब्राउज़र (LocalStorage) में सुरक्षित है। नियमित रूप से JSON Export बैकअप लेते रहें।</p>
-        </div>
-    </div>
-
-    <script>
-        // State
-        let transactions = JSON.parse(localStorage.getItem('familyBudget')) || [];
-        let categories = JSON.parse(localStorage.getItem('budgetCategories')) || {
-            income: ['वेतन', 'व्यापार', 'निवेश', 'किराया आय', 'उपहार', 'अन्य आय'],
-            expense: ['किराना', 'बिजली-पानी', 'किराया', 'शिक्षा', 'स्वास्थ्य', 'मनोरंजन', 'यातायात', 'ईंधन', 'अन्य खर्च']
-        };
-        let customFieldKeys = JSON.parse(localStorage.getItem('customFieldsKeys')) || [];
-
-        const months = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
-
-        // Init
-        function init() {
-            document.getElementById('date').value = new Date().toISOString().split('T')[0];
-            const monthSelect = document.getElementById('fMonth');
-            months.forEach((m, i) => {
-                const opt = new Option(m, i);
-                if(i === new Date().getMonth()) opt.selected = true;
-                monthSelect.add(opt);
-            });
-            updateCatDropdown();
-            render();
-            renderSettings();
-            lucide.createIcons();
-        }
-
-        function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('hidden');
-        }
-
-        function updateCatDropdown() {
-            const type = document.getElementById('type').value;
-            const catSelect = document.getElementById('category');
-            catSelect.innerHTML = categories[type].map(c => `<option value="${c}">${c}</option>`).join('');
-            
-            // Render Dynamic Fields in Form
-            const container = document.getElementById('dynamicFieldsContainer');
-            container.innerHTML = customFieldKeys.map(key => `
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Add Transaction */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+              <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                <Plus className="text-indigo-600" />
+                नया लेनदेन
+              </h2>
+              
+              <div className="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">${key}</label>
-                    <input type="text" data-key="${key}" class="custom-field-input w-full p-3 border-2 rounded-lg" placeholder="${key} दर्ज करें">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">प्रकार</label>
+                  <select
+                    value={type}
+                    onChange={(e) => {
+                      setType(e.target.value);
+                      setCategory('');
+                    }}
+                    className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="income">💰 आय</option>
+                    <option value="expense">💸 व्यय</option>
+                  </select>
                 </div>
-            `).join('');
-        }
 
-        function addTransaction() {
-            const amount = document.getElementById('amount').value;
-            const description = document.getElementById('description').value;
-            const category = document.getElementById('category').value;
-            const type = document.getElementById('type').value;
-            const date = document.getElementById('date').value;
-
-            if(!amount || !description) return alert("कृपया पूरी जानकारी भरें");
-
-            const customData = {};
-            document.querySelectorAll('.custom-field-input').forEach(input => {
-                customData[input.dataset.key] = input.value;
-            });
-
-            const newT = {
-                id: Date.now(),
-                amount: parseFloat(amount),
-                description, category, type, date, customData
-            };
-
-            transactions.unshift(newT);
-            saveAndRender();
-            
-            // Clear inputs
-            document.getElementById('amount').value = '';
-            document.getElementById('description').value = '';
-            document.querySelectorAll('.custom-field-input').forEach(i => i.value = '');
-        }
-
-        function deleteTransaction(id) {
-            if(confirm("क्या आप इस लेनदेन को हटाना चाहते हैं?")) {
-                transactions = transactions.filter(t => t.id !== id);
-                saveAndRender();
-            }
-        }
-
-        // Categories & Settings Logic
-        function renderSettings() {
-            const inList = document.getElementById('incomeCatList');
-            const exList = document.getElementById('expenseCatList');
-            const cfList = document.getElementById('customFieldsList');
-
-            inList.innerHTML = categories.income.map(c => `
-                <div class="flex justify-between bg-white p-2 rounded text-sm shadow-sm">
-                    <span>${c}</span>
-                    <button onclick="removeCategory('income', '${c}')" class="text-red-500"><i data-lucide="trash-2" size="14"></i></button>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">श्रेणी</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">श्रेणी चुनें</option>
+                    {categories[type].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
-            `).join('');
 
-            exList.innerHTML = categories.expense.map(c => `
-                <div class="flex justify-between bg-white p-2 rounded text-sm shadow-sm">
-                    <span>${c}</span>
-                    <button onclick="removeCategory('expense', '${c}')" class="text-red-500"><i data-lucide="trash-2" size="14"></i></button>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">राशि (₹)</label>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="राशि दर्ज करें"
+                    className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
                 </div>
-            `).join('');
 
-            cfList.innerHTML = customFieldKeys.map(k => `
-                <div class="flex justify-between bg-white p-2 rounded text-sm shadow-sm border border-blue-100">
-                    <span class="truncate font-semibold">${k}</span>
-                    <button onclick="removeCustomField('${k}')" class="text-red-400"><i data-lucide="x" size="14"></i></button>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">तारीख</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
                 </div>
-            `).join('');
-            
-            lucide.createIcons();
-        }
 
-        function addCategory(type) {
-            const input = type === 'income' ? document.getElementById('newInCat') : document.getElementById('newExCat');
-            const val = input.value.trim();
-            if(val && !categories[type].includes(val)) {
-                categories[type].push(val);
-                input.value = '';
-                saveSettings();
-            }
-        }
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">विवरण</label>
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="विवरण लिखें"
+                    className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
 
-        function removeCategory(type, name) {
-            categories[type] = categories[type].filter(c => c !== name);
-            saveSettings();
-        }
+                {/* Custom Fields */}
+                {Object.keys(customFields).map(field => (
+                  <div key={field}>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">{field}</label>
+                    <input
+                      type="text"
+                      value={customFields[field]}
+                      onChange={(e) => setCustomFields({ ...customFields, [field]: e.target.value })}
+                      placeholder={`${field} दर्ज करें`}
+                      className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                ))}
 
-        function addCustomFieldPrompt() {
-            const name = prompt("नए अतिरिक्त फील्ड का नाम (जैसे: नोट्स, बैंक, आदि):");
-            if(name && !customFieldKeys.includes(name)) {
-                customFieldKeys.push(name);
-                saveSettings();
-            }
-        }
+                <button
+                  onClick={addTransaction}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-bold hover:from-indigo-700 hover:to-purple-700 transition flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Plus size={20} />
+                  जोड़ें
+                </button>
+              </div>
+            </div>
 
-        function removeCustomField(key) {
-            customFieldKeys = customFieldKeys.filter(k => k !== key);
-            saveSettings();
-        }
-
-        function saveSettings() {
-            localStorage.setItem('budgetCategories', JSON.stringify(categories));
-            localStorage.setItem('customFieldsKeys', JSON.stringify(customFieldKeys));
-            updateCatDropdown();
-            renderSettings();
-        }
-
-        // Export/Import
-        function exportData() {
-            const blob = new Blob([JSON.stringify({transactions, categories, customFieldKeys}, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `family-budget-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-        }
-
-        function importData(e) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const data = JSON.parse(event.target.result);
-                transactions = data.transactions || [];
-                categories = data.categories || categories;
-                customFieldKeys = data.customFieldKeys || [];
-                saveAndRender();
-                saveSettings();
-                alert("डेटा सफलतापूर्वक इम्पोर्ट हो गया!");
-            };
-            reader.readAsText(file);
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('familyBudget', JSON.stringify(transactions));
-            render();
-            lucide.createIcons();
-        }
-
-        function render() {
-            const fMonth = parseInt(document.getElementById('fMonth').value);
-            const fYear = parseInt(document.getElementById('fYear').value);
-            const fType = document.getElementById('fType').value;
-            const search = document.getElementById('search').value.toLowerCase();
-
-            const filtered = transactions.filter(t => {
-                const tDate = new Date(t.date);
-                return (tDate.getMonth() === fMonth) &&
-                       (tDate.getFullYear() === fYear) &&
-                       (fType === 'all' || t.type === fType) &&
-                       (t.description.toLowerCase().includes(search) || t.category.toLowerCase().includes(search));
-            });
-
-            // Summary
-            let inc = 0, exp = 0;
-            filtered.forEach(t => t.type === 'income' ? inc += t.amount : exp += t.amount);
-            
-            document.getElementById('totalIncome').innerText = `₹${inc.toLocaleString('hi-IN')}`;
-            document.getElementById('totalExpense').innerText = `₹${exp.toLocaleString('hi-IN')}`;
-            document.getElementById('balance').innerText = `₹${(inc - exp).toLocaleString('hi-IN')}`;
-            document.getElementById('historyTitle').innerText = `लेनदेन का इतिहास (${filtered.length})`;
-
-            // List
-            const list = document.getElementById('transactionList');
-            list.innerHTML = filtered.length ? filtered.map(t => `
-                <div class="p-4 rounded-xl border-2 transition hover:shadow-md ${t.type === 'income' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${t.type === 'income' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">${t.category}</span>
-                                <span class="text-[10px] text-gray-400 font-bold italic">${new Date(t.date).toLocaleDateString('hi-IN')}</span>
-                            </div>
-                            <h3 class="font-bold text-gray-800">${t.description}</h3>
-                            <div class="mt-1 flex flex-wrap gap-x-4">
-                                ${Object.entries(t.customData || {}).map(([k, v]) => v ? `<span class="text-[11px] text-gray-500"><strong>${k}:</strong> ${v}</span>` : '').join('')}
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-black text-lg ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${t.type === 'income' ? '+' : '-'}₹${t.amount.toLocaleString('hi-IN')}</p>
-                            <button onclick="deleteTransaction(${t.id})" class="text-gray-300 hover:text-red-500 mt-2 transition"><i data-lucide="trash-2" size="18"></i></button>
-                        </div>
+            {/* Category Stats */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
+                <PieChart className="text-indigo-600" size={20} />
+                शीर्ष खर्च श्रेणियां
+              </h2>
+              {getCategoryStats().length > 0 ? (
+                <div className="space-y-3">
+                  {getCategoryStats().map(([cat, amt]) => (
+                    <div key={cat}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-gray-700">{cat}</span>
+                        <span className="text-red-600 font-bold">₹{amt.toLocaleString('hi-IN')}</span>
+                      </div>
+                      <div className="bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-red-500 to-pink-500 h-2 rounded-full"
+                          style={{ width: `${(amt / totalExpense) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
+                  ))}
                 </div>
-            `).join('') : '<div class="text-center py-10 text-gray-400">कोई लेनदेन नहीं मिला</div>';
-            
-            lucide.createIcons();
-        }
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-4">कोई डेटा नहीं</p>
+              )}
+            </div>
+          </div>
 
-        init();
-    </script>
-</body>
-</html>
+          {/* Right Column - Transactions */}
+          <div className="lg:col-span-2">
+            {/* Filters */}
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Calendar size={16} />
+                    महीना
+                  </label>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    className="w-full p-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {months.map((month, idx) => (
+                      <option key={idx} value={idx}>{month}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">वर्ष</label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="w-full p-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {[2024, 2025, 2026].map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Filter size={16} />
+                    फ़िल्टर
+                  </label>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full p-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">सभी</option>
+                    <option value="income">आय</option>
+                    <option value="expense">व्यय</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <Search size={16} />
+                  खोजें
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="विवरण या श्रेणी खोजें..."
+                  className="w-full p-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Export/Import Buttons */}
+            <div className="flex gap-3 mb-6">
+              <button
+                onClick={exportData}
+                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Download size={18} />
+                Export करें
+              </button>
+              <label className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 cursor-pointer shadow-lg">
+                <Upload size={18} />
+                Import करें
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importData}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Transactions List */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold mb-4 text-gray-800">
+                लेनदेन का इतिहास ({filteredTransactions.length})
+              </h2>
+              
+              {filteredTransactions.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 text-lg">कोई लेनदेन नहीं मिला</p>
+                  <p className="text-gray-400 text-sm mt-2">नया लेनदेन जोड़ने के लिए बायीं तरफ़ का फॉर्म भरें</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                  {filteredTransactions.map(t => (
+                    <div
+                      key={t.id}
+                      className={`p-4 rounded-lg border-2 transition hover:shadow-md ${
+                        t.type === 'income' 
+                          ? 'bg-green-50 border-green-200 hover:border-green-300' 
+                          : 'bg-red-50 border-red-200 hover:border-red-300'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              t.type === 'income' 
+                                ? 'bg-green-200 text-green-800' 
+                                : 'bg-red-200 text-red-800'
+                            }`}>
+                              {t.category}
+                            </span>
+                            <span className="text-xs text-gray-500 font-semibold">
+                              {new Date(t.date).toLocaleDateString('hi-IN')}
+                            </span>
+                          </div>
+                          <p className="font-bold text-gray-800 text-lg">{t.description}</p>
+                          
+                          {/* Custom Fields Display */}
+                          {t.customData && Object.keys(t.customData).length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {Object.entries(t.customData).map(([key, value]) => 
+                                value ? (
+                                  <p key={key} className="text-xs text-gray-600">
+                                    <span className="font-semibold">{key}:</span> {value}
+                                  </p>
+                                ) : null
+                              )}
+                            </div>
+                          )}
+                          
+                          <p className={`text-2xl font-bold mt-2 ${
+                            t.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {t.type === 'income' ? '+' : '-'}₹{t.amount.toLocaleString('hi-IN')}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteTransaction(t.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-100 p-2 rounded-lg transition"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Note */}
+        <div className="mt-6 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+          <p className="text-sm text-yellow-800 text-center">
+            <strong>नोट:</strong> Export बटन से अपना डेटा download करें और Google Drive में सुरक्षित रखें। 
+            Import बटन से किसी भी समय वापस load कर सकते हैं।
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
